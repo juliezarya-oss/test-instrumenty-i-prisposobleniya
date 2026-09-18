@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тест: безопасность при работе с инструментом</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=PT+Sans:wght@400;700&display=swap">
+<style>
+  :root{
+    --ground:#eef3f9;--surface:#ffffff;--navy:#0d3b66;--navy-deep:#0a2c4d;
+    --blue:#1d6fb8;--blue-soft:#e8f2fb;--blue-border:#bcdcf5;
+    --warn:#e07b2a;--warn-soft:#fdf1e6;--warn-border:#f3cfa6;
+    --ink:#132433;--muted:#5c6b7a;--line:#e2e9f1;
+    --ok:#157a4b;--ok-bg:#e7f6ee;--ok-border:#a9dcc0;
+    --err:#c0392b;--err-bg:#fcecea;--err-border:#f0bcb5;
+    --radius:16px;--radius-sm:12px;
+    --shadow:0 10px 30px -12px rgba(13,59,102,.28);--shadow-sm:0 2px 8px -3px rgba(13,59,102,.20);
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:"PT Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:"Manrope","PT Sans",sans-serif;text-wrap:balance}
+  .wrap{max-width:680px;margin:0 auto;padding:24px 18px 64px;min-height:100%}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .screen{display:none}
+  .screen.active{display:block;animation:fade .32s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.screen.active{animation:none} *{transition:none!important}}
+
+  .start-head{background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;padding:38px 30px 32px;text-align:center}
+  .eyebrow{font-family:"Manrope",sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:12px;font-weight:700;color:#9ecbf0;margin:0 0 12px}
+  .start-head h1{margin:0 0 8px;font-size:26px;font-weight:800;letter-spacing:-.01em}
+  .start-head .sub{margin:0 0 3px;font-size:15.5px;color:#cfe2f5;font-weight:400;line-height:1.4}
+  .start-head .sub2{margin:0;font-size:13.5px;color:#9ecbf0;font-weight:400}
+  .icons{display:flex;justify-content:center;gap:12px;margin:22px 0 4px;flex-wrap:wrap}
+  .icons span{width:50px;height:50px;display:grid;place-items:center;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:14px}
+  .icons span.accent{background:rgba(224,123,42,.20);border-color:rgba(243,207,166,.5)}
+  .icons svg{width:27px;height:27px;stroke:#dcecfb;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .icons span.accent svg{stroke:#f6c79a}
+  .start-body{padding:26px 30px 30px}
+  .lead{margin:0 0 20px;color:#33506b;font-size:15.5px}
+  .meta-row{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 20px}
+  .chip{flex:1 1 130px;background:var(--blue-soft);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:14px 16px;text-align:center}
+  .chip b{display:block;font-family:"Manrope",sans-serif;font-size:22px;color:var(--navy);line-height:1.1}
+  .chip small{color:var(--muted);font-size:13px}
+  .note{background:var(--blue-soft);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:14px 16px;font-size:14px;color:#33506b;margin:0 0 24px}
+  .note b{color:var(--navy)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;font-family:"Manrope",sans-serif;font-weight:700;font-size:18px;padding:16px 22px;border-radius:14px;border:none;cursor:pointer;transition:background .18s,transform .06s,box-shadow .18s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm)}
+  .btn-primary:hover{background:var(--navy-deep)}
+  .btn-primary:disabled{background:#b9c6d4;color:#eef3f9;cursor:not-allowed;box-shadow:none}
+  .btn-ghost{background:var(--surface);color:var(--navy);border:1.6px solid var(--blue-border)}
+  .btn-ghost:hover{background:var(--blue-soft)}
+  .btn:focus-visible{outline:3px solid #7fb4e6;outline-offset:2px}
+
+  .q-top{padding:18px 24px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .q-top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px}
+  .q-count{font-family:"Manrope",sans-serif;font-weight:700;color:var(--navy);font-size:15px;white-space:nowrap}
+  .q-topic{font-family:"Manrope",sans-serif;font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);border:1px solid var(--warn-border);padding:4px 10px;border-radius:99px;white-space:nowrap}
+  .bar{height:8px;background:var(--ground);border-radius:99px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--navy));border-radius:99px;transition:width .4s ease}
+
+  .q-body{padding:24px 24px 26px}
+  .q-multi-tag{display:inline-flex;align-items:center;gap:7px;background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-border);font-family:"Manrope",sans-serif;font-weight:700;font-size:12px;letter-spacing:.02em;padding:5px 12px;border-radius:99px;margin-bottom:12px}
+  .q-multi-tag svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .q-text{font-size:19px;font-weight:700;font-family:"Manrope",sans-serif;line-height:1.42;margin:0 0 20px}
+  .opts{display:flex;flex-direction:column;gap:11px;margin-bottom:22px}
+  .opt{display:flex;align-items:flex-start;gap:13px;border:1.6px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px;cursor:pointer;background:var(--surface);transition:border-color .15s,background .15s}
+  .opt:hover{border-color:var(--blue-border);background:#f8fbfe}
+  .opt.selected{border-color:var(--blue);background:var(--blue-soft)}
+  .opt .mark{flex:0 0 auto;width:30px;height:30px;border-radius:8px;border:1.6px solid var(--blue-border);display:grid;place-items:center;font-family:"Manrope",sans-serif;font-weight:700;color:var(--navy);font-size:15px;background:var(--surface)}
+  .opt.selected .mark{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .opt .txt{padding-top:3px}
+  .opt.locked{cursor:default}
+  .opt.reveal-ok{border-color:var(--ok-border);background:var(--ok-bg)}
+  .opt.reveal-ok .mark{background:var(--ok);border-color:var(--ok);color:#fff}
+  .opt.reveal-bad{border-color:var(--err-border);background:var(--err-bg)}
+  .opt.reveal-bad .mark{background:var(--err);border-color:var(--err);color:#fff}
+  .opt .res-ic{margin-left:auto;flex:0 0 auto;align-self:center}
+  .opt .res-ic svg{width:22px;height:22px}
+
+  .verdict{display:flex;align-items:center;gap:11px;font-family:"Manrope",sans-serif;font-weight:800;font-size:18px;padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:14px;line-height:1.3}
+  .verdict svg{width:26px;height:26px;flex:0 0 auto}
+  .verdict.good{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-border)}
+  .verdict.bad{background:var(--err-bg);color:var(--err);border:1px solid var(--err-border)}
+  .explain{background:var(--blue-soft);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:15px 17px;margin-bottom:14px}
+  .explain .lbl{font-family:"Manrope",sans-serif;font-weight:700;color:var(--navy);font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 5px}
+  .explain p{margin:0;font-size:15.5px;color:#2c4560}
+  .basis{font-size:13.5px;color:var(--muted);border-left:3px solid var(--warn-border);padding:2px 0 2px 12px;margin-bottom:20px}
+  .basis .lbl{display:block;font-family:"Manrope",sans-serif;font-weight:700;color:var(--warn);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .hidden{display:none}
+
+  .result-head{text-align:center;padding:38px 30px 30px;color:#fff;background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%)}
+  .ring-wrap{position:relative;width:180px;height:180px;margin:6px auto 18px}
+  .ring-wrap svg{transform:rotate(-90deg)}
+  .ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring-num b{font-family:"Manrope",sans-serif;font-size:44px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+  .ring-num small{color:#cfe2f5;font-size:14px;margin-top:3px}
+  .grade{font-family:"Manrope",sans-serif;font-weight:800;font-size:22px;margin:0 0 4px}
+  .grade-sub{margin:0;color:#cfe2f5;font-size:15px;max-width:92%;margin-inline:auto}
+  .score-split{display:flex;gap:12px;padding:22px 24px 6px}
+  .score-box{flex:1;border-radius:var(--radius-sm);padding:16px;text-align:center;border:1px solid}
+  .score-box.ok{background:var(--ok-bg);border-color:var(--ok-border)}
+  .score-box.er{background:var(--err-bg);border-color:var(--err-border)}
+  .score-box b{display:block;font-family:"Manrope",sans-serif;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+  .score-box.ok b{color:var(--ok)}
+  .score-box.er b{color:var(--err)}
+  .score-box small{font-size:13.5px;color:var(--muted)}
+  .result-actions{display:flex;flex-direction:column;gap:11px;padding:22px 24px 26px}
+  .mini-note{margin:2px 2px 6px;font-size:12.5px;color:var(--muted);line-height:1.45;text-align:center}
+
+  .review-head{padding:22px 24px 8px}
+  .review-head h2{margin:0 0 4px;font-size:22px;color:var(--navy)}
+  .review-head p{margin:0;color:var(--muted);font-size:14.5px}
+  .rev-list{padding:12px 20px 20px;display:flex;flex-direction:column;gap:16px}
+  .rev-item{border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 17px}
+  .rev-item .rtopic{font-family:"Manrope",sans-serif;font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--warn);margin:0 0 6px}
+  .rev-item .rq{font-family:"Manrope",sans-serif;font-weight:700;font-size:16px;line-height:1.4;margin:0 0 12px}
+  .rev-line{display:flex;gap:9px;font-size:15px;margin-bottom:8px;align-items:flex-start}
+  .rev-line .tag{flex:0 0 auto;font-family:"Manrope",sans-serif;font-weight:700;font-size:12px;padding:2px 9px;border-radius:6px;margin-top:2px}
+  .tag.your{background:var(--err-bg);color:var(--err)}
+  .tag.right{background:var(--ok-bg);color:var(--ok)}
+  .rev-item .explain{margin:12px 0 10px}
+  .rev-item .basis{margin-bottom:2px}
+  .rev-empty{padding:30px 24px 34px;text-align:center;color:var(--ok);font-family:"Manrope",sans-serif;font-weight:700}
+  .footer-note{text-align:center;font-size:12.5px;color:#8493a3;margin:18px 6px 0;line-height:1.5}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+
+    <!-- START -->
+    <section id="screen-start" class="screen active">
+      <div class="start-head">
+        <p class="eyebrow">Проверка знаний · Охрана труда</p>
+        <h1>Безопасность при работе с инструментом и приспособлениями</h1>
+        <p class="sub">Практическая проверка для работников производства</p>
+        <p class="sub2">По действующему законодательству РФ (2026 г.)</p>
+        <div class="icons" aria-hidden="true">
+          <span title="Гаечный ключ"><svg viewBox="0 0 24 24"><path d="M15.5 3a5 5 0 0 0-4.6 7l-7 7 2.1 2.1 7-7a5 5 0 0 0 6.5-6.1l-2.9 2.9-2.5-.6-.6-2.5 2.9-2.9A5 5 0 0 0 15.5 3z"/></svg></span>
+          <span title="Отвёртка"><svg viewBox="0 0 24 24"><path d="M3 21l4.5-1.5 9-9-3-3-9 9L3 21z"/><path d="M14.5 6.5l3-3a2.1 2.1 0 0 1 3 3l-3 3"/></svg></span>
+          <span title="Шуруповёрт"><svg viewBox="0 0 24 24"><path d="M3 8.5h9v5H3zM12 10h4l4-2v8l-4-2h-4M6 13.5V18h3"/></svg></span>
+          <span title="Защитные очки"><svg viewBox="0 0 24 24"><rect x="2.5" y="9" width="8" height="6" rx="3"/><rect x="13.5" y="9" width="8" height="6" rx="3"/><path d="M10.5 11.5c.6-.6 2.4-.6 3 0"/></svg></span>
+          <span class="accent" title="Предупреждающий знак"><svg viewBox="0 0 24 24"><path d="M12 3.5 21 19H3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="16.5" x2="12" y2="16.6"/></svg></span>
+          <span title="Защитный щит"><svg viewBox="0 0 24 24"><path d="M12 3l7 2.5v5.5c0 4.5-3 8.2-7 9.5-4-1.3-7-5-7-9.5V5.5L12 3z"/></svg></span>
+        </div>
+      </div>
+      <div class="start-body">
+        <p class="lead">Проверьте практические навыки безопасной работы: что осмотреть до начала работы, что можно и нельзя делать, когда прекратить работу при неисправности, как действовать в нештатной ситуации и когда сообщить руководителю.</p>
+        <div class="meta-row">
+          <div class="chip"><b>30</b><small>вопросов</small></div>
+          <div class="chip"><b>6</b><small>тематических блоков</small></div>
+          <div class="chip"><b>80%</b><small>порог зачёта</small></div>
+        </div>
+        <p class="note"><b>Учебная самопроверка.</b> Вопросы основаны на действующей редакции Правил по охране труда при работе с инструментом и приспособлениями (Приказ Минтруда России от 27.11.2020 № 835н, ред. от 29.04.2025), с учётом ТК РФ (раздел X), Приказа Минтруда № 766н (СИЗ) и, где применимо, Приказа Минтруда № 903н. Конкретные технические параметры (частота вращения оснастки, рабочее давление и др.) определяются маркировкой и эксплуатационной документацией изготовителя. Варианты ответов перемешиваются при каждом прохождении.</p>
+        <button class="btn btn-primary" id="btn-start">Начать тест</button>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="screen-quiz" class="screen">
+      <div class="q-top">
+        <div class="q-top-row">
+          <span class="q-count" id="q-count">Вопрос 1 из 30</span>
+          <span class="q-topic" id="q-topic"></span>
+        </div>
+        <div class="bar"><i id="q-bar"></i></div>
+      </div>
+      <div class="q-body">
+        <div class="q-multi-tag hidden" id="q-multi"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Выберите все правильные варианты</div>
+        <h2 class="q-text" id="q-text"></h2>
+        <div class="opts" id="q-opts"></div>
+        <div id="q-feedback" class="hidden">
+          <div class="verdict" id="q-verdict"></div>
+          <div class="explain">
+            <p class="lbl">Почему?</p>
+            <p id="q-explain"></p>
+          </div>
+          <p class="basis"><span class="lbl">Нормативное основание</span><span id="q-basis"></span></p>
+        </div>
+        <button class="btn btn-primary" id="btn-answer" disabled>Ответить</button>
+        <button class="btn btn-primary hidden" id="btn-next">Следующий вопрос</button>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="screen-result" class="screen">
+      <div class="result-head">
+        <div class="ring-wrap">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="78" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="14"/>
+            <circle id="ring-fg" cx="90" cy="90" r="78" fill="none" stroke="#5fd39a" stroke-width="14" stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/>
+          </svg>
+          <div class="ring-num">
+            <b id="res-percent">0%</b>
+            <small id="res-fraction">0 из 30</small>
+          </div>
+        </div>
+        <p class="grade" id="res-grade"></p>
+        <p class="grade-sub" id="res-grade-sub"></p>
+      </div>
+      <div class="score-split">
+        <div class="score-box ok"><b id="res-ok">0</b><small>Правильных ответов</small></div>
+        <div class="score-box er"><b id="res-err">0</b><small>Ошибок</small></div>
+      </div>
+      <div class="result-actions">
+        <p class="mini-note">Учебная самопроверка. Результат не является официальным протоколом проверки знания требований охраны труда.</p>
+        <button class="btn btn-ghost" id="btn-review">Разобрать ошибки</button>
+        <button class="btn btn-primary" id="btn-restart">Пройти тест ещё раз</button>
+      </div>
+    </section>
+
+    <!-- REVIEW -->
+    <section id="screen-review" class="screen">
+      <div class="review-head">
+        <h2>Разбор ошибок</h2>
+        <p id="rev-sub"></p>
+      </div>
+      <div class="rev-list" id="rev-list"></div>
+      <div class="result-actions">
+        <button class="btn btn-ghost" id="btn-back-result">Назад к результату</button>
+        <button class="btn btn-primary" id="btn-restart2">Пройти тест ещё раз</button>
+      </div>
+    </section>
+
+  </div>
+  <p class="footer-note">Материал носит справочный характер и предназначен для самостоятельной проверки знаний. Итоговые действия выполняйте по действующим Правилам (Приказ Минтруда России № 835н), инструкциям по охране труда и эксплуатационной документации изготовителя.</p>
+</div>
+
+<script>
+"use strict";
+var LETTERS = ["А","Б","В","Г"];
+
+// Каноническое хранение: opts + correct (внутренние индексы). Порядок вариантов
+// перемешивается при каждом показе; проверка ответа идёт по внутренним индексам,
+// а не по видимой букве.
+var QUESTIONS = [
+  // ===== БЛОК 1. ОБЩИЕ ТРЕБОВАНИЯ (5) =====
+  {
+    topic:"Общие требования", multi:false,
+    q:"Перед началом смены работник осмотрел инструмент и дефектов не обнаружил. В процессе работы на рукоятке появилась трещина. Работник решил закончить текущую операцию, а затем сообщить руководителю. Как необходимо поступить?",
+    opts:[
+      "Немедленно прекратить работу, вывести инструмент из эксплуатации и сообщить непосредственному руководителю",
+      "Закончить текущую операцию, а затем сообщить руководителю",
+      "Продолжить работу, если трещина небольшая и не мешает",
+      "Самостоятельно устранить дефект и продолжить работу"
+    ],
+    correct:[0],
+    explain:"Неисправность, выявленная во время работы, — основание немедленно прекратить использование инструмента, а не дорабатывать операцию. О дефекте нужно сообщить непосредственному руководителю; работать неисправным инструментом нельзя.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н (общие требования: осмотр инструмента и действия при обнаружении неисправности); ст. 215 ТК РФ"
+  },
+  {
+    topic:"Общие требования", multi:false,
+    q:"Работник получил ручной инструмент со склада, осмотрел его в начале смены и считает, что этого достаточно. В какие моменты работник обязан осматривать ручной инструмент?",
+    opts:[
+      "Только при получении инструмента со склада",
+      "Один раз в неделю перед первой сменой",
+      "До начала работы, в ходе её выполнения и после окончания работы",
+      "Только после окончания смены, при сдаче инструмента"
+    ],
+    correct:[2],
+    explain:"Ручной инструмент осматривается работником до начала работы, в ходе её выполнения и после окончания. Такой порядок позволяет вовремя выявить дефекты, появившиеся в процессе работы.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел V (требования к работе с ручным инструментом)"
+  },
+  {
+    topic:"Общие требования", multi:false,
+    q:"Работнику нужно поддеть и приподнять деталь. Подходящего приспособления под рукой нет, есть только отвёртка. Как правильно поступить?",
+    opts:[
+      "Использовать отвёртку как рычаг, действуя аккуратно",
+      "Заточить конец отвёртки, чтобы использовать её как зубило",
+      "Приложить максимум усилия, если отвёртка выглядит прочной",
+      "Применить инструмент (приспособление), предназначенный для этой операции; отвёртку использовать только по назначению"
+    ],
+    correct:[3],
+    explain:"Инструмент применяют только по прямому назначению. Отвёртка не предназначена быть рычагом или зубилом: при таком использовании она ломается и срывается, что приводит к травме. Нужно взять инструмент, предназначенный для операции.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н (использование инструмента по назначению)"
+  },
+  {
+    topic:"Общие требования", multi:true,
+    q:"Как правильно организовать размещение инструмента на рабочем месте? Выберите все правильные варианты.",
+    opts:[
+      "Размещать инструмент так, чтобы исключить его падение",
+      "Не загромождать инструментом проходы и рабочую зону",
+      "Острые (режущие) части защищать чехлами или убирать в предназначенную тару",
+      "Складывать инструмент на краю верстака и на проходах, чтобы был под рукой"
+    ],
+    correct:[0,1,2],
+    explain:"Инструмент размещают так, чтобы исключить его падение, не загромождать проходы и рабочую зону, а острые части защищать или убирать в тару. Хранение на краю верстака и на проходах создаёт риск падения и травм.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел III (организация рабочих мест)"
+  },
+  {
+    topic:"Общие требования", multi:false,
+    q:"Во время работы возникла ситуация, представляющая непосредственную опасность для жизни и здоровья работника. Как правильно действовать?",
+    opts:[
+      "Прекратить работу, при необходимости покинуть опасную зону и сообщить непосредственному руководителю",
+      "Продолжать работу и наблюдать за развитием ситуации",
+      "Самостоятельно устранить опасность любыми доступными средствами",
+      "Доработать до конца смены, а затем доложить о случившемся"
+    ],
+    correct:[0],
+    explain:"При возникновении непосредственной опасности работу прекращают, при необходимости покидают опасную зону и сообщают руководителю. Работник вправе отказаться от работы, угрожающей его жизни и здоровью.",
+    basis:"ст. 215, ст. 216.1 ТК РФ; Приказ Минтруда России от 27.11.2020 № 835н"
+  },
+
+  // ===== БЛОК 2. РУЧНОЙ ИНСТРУМЕНТ (7) =====
+  {
+    topic:"Ручной инструмент", multi:false,
+    q:"Гайка затянута с большим усилием. Работнику не хватает длины гаечного ключа, и он хочет надеть на него отрезок трубы, чтобы увеличить плечо. Как следует поступить?",
+    opts:[
+      "Надеть на ключ отрезок трубы для увеличения усилия",
+      "Подложить металлическую пластину между губками ключа и гранями гайки",
+      "Применить исправный ключ подходящего размера или предусмотренный инструмент, не наращивая ключ и не применяя подкладок",
+      "Ударить по рукоятке ключа молотком"
+    ],
+    correct:[2],
+    explain:"Наращивать ключ трубой (пользоваться дополнительными рычагами) и применять подкладки при зазоре между губками запрещено — это приводит к срыву ключа и травме. Нужен исправный ключ подходящего размера или инструмент, предусмотренный для этой операции.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел V (запрет дополнительных рычагов и подкладок для гаечных ключей)"
+  },
+  {
+    topic:"Ручной инструмент", multi:false,
+    q:"Боёк молотка в порядке, но рукоятка треснула и сидит недостаточно плотно. Работать осталось немного. Как правильно поступить?",
+    opts:[
+      "Работать дальше, держа молоток крепче",
+      "Не использовать молоток с треснувшей и ненадёжно закреплённой рукояткой; заменить его и сообщить руководителю",
+      "Обмотать рукоятку изолентой и продолжить работу",
+      "Забить дополнительный клин и работать без проверки"
+    ],
+    correct:[1],
+    explain:"Молоток с треснувшей или ненадёжно закреплённой рукояткой к работе не допускается: боёк может слететь. Такой инструмент выводят из эксплуатации, заменяют и сообщают руководителю; кустарные способы (изолента, клин на ходу) безопасность не восстанавливают.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел V (требования к молоткам и рукояткам)"
+  },
+  {
+    topic:"Ручной инструмент", multi:true,
+    q:"Какие дефекты ручного ударного инструмента (молотка, кувалды) делают его непригодным к работе? Выберите все правильные варианты.",
+    opts:[
+      "Заводская маркировка на инструменте",
+      "Сколы, выбоины и трещины на бойке",
+      "Заусенцы и наклёп на ударной части",
+      "Трещины на рукоятке или её ненадёжное крепление"
+    ],
+    correct:[1,2,3],
+    explain:"Не допускаются сколы, выбоины, трещины и заусенцы (наклёп) на бойке, а также трещины и ненадёжное крепление рукоятки. Заводская маркировка — это норма, а не дефект.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел V (требования к ударному инструменту)"
+  },
+  {
+    topic:"Ручной инструмент", multi:false,
+    q:"Жало отвёртки скруглено (изношено) и не соответствует шлицу винта. Как правильно поступить?",
+    opts:[
+      "Использовать отвёртку, прижимая её сильнее",
+      "Доработать шлиц винта напильником",
+      "Удерживать деталь в руке и давить на отвёртку всем весом",
+      "Подобрать исправную отвёртку, соответствующую шлицу; повреждённую не применять"
+    ],
+    correct:[3],
+    explain:"Отвёртка должна быть исправной и соответствовать шлицу. Изношенное жало срывается, повреждает крепёж и травмирует руку. Удержание детали в руке под нажимом также опасно — деталь закрепляют.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел V (соответствие и исправность ручного инструмента)"
+  },
+  {
+    topic:"Ручной инструмент", multi:false,
+    q:"У пассатижей (плоскогубцев) повреждены рабочие губки, а изоляция рукояток частично содрана. Как поступить?",
+    opts:[
+      "Продолжить работу — губки ещё держат деталь",
+      "Обмотать рукоятки тканью и работать",
+      "Не применять инструмент с повреждёнными рабочими поверхностями и рукоятками; заменить исправным",
+      "Подогнуть губки на месте и продолжить"
+    ],
+    correct:[2],
+    explain:"Инструмент с повреждёнными рабочими поверхностями и рукоятками не применяют: он срывается с детали и не обеспечивает надёжный хват. Его заменяют исправным, о неисправности сообщают руководителю.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел V (исправность ручного инструмента)"
+  },
+  {
+    topic:"Ручной инструмент", multi:true,
+    q:"Как безопасно переносить и передавать ручной инструмент? Выберите все правильные варианты.",
+    opts:[
+      "Переносить инструмент с острыми (режущими) частями в сумке, ящике или с защитой на режущей части",
+      "Передавать инструмент коллеге броском, если он стоит рядом",
+      "Не держать режущий или колющий инструмент лезвием (остриём) к себе и к окружающим",
+      "Носить инструмент в карманах спецодежды остриём (лезвием) наружу"
+    ],
+    correct:[0,2],
+    explain:"Инструмент с острыми частями переносят в таре или с защитой режущей части и не направляют лезвие на себя и окружающих. Бросать инструмент и носить его в карманах остриём наружу запрещено — это приводит к порезам и травмам.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел V (переноска и хранение ручного инструмента)"
+  },
+  {
+    topic:"Ручной инструмент", multi:false,
+    q:"При сборке работник заметил острую кромку (заусенцы) на металлической детали. Как организовать работу, чтобы исключить порез?",
+    opts:[
+      "Работать голыми руками, но осторожно",
+      "Ускорить работу, чтобы меньше контактировать с деталью",
+      "Игнорировать кромку, если возможная рана небольшая",
+      "Применять предусмотренные СИЗ (защитные перчатки по нормам), осторожно обращаться с деталью и сообщить о дефектных кромках"
+    ],
+    correct:[3],
+    explain:"Против порезов применяют предусмотренные СИЗ (защитные перчатки по нормам), аккуратно обращаются с деталью, о дефектных кромках и заусенцах сообщают. «Осторожно голыми руками» и спешка риск не устраняют.",
+    basis:"Приказ Минтруда России от 29.10.2021 № 766н (СИЗ); Приказ Минтруда России от 27.11.2020 № 835н"
+  },
+
+  // ===== БЛОК 3. ЭЛЕКТРИФИЦИРОВАННЫЙ ИНСТРУМЕНТ (7) =====
+  {
+    topic:"Электроинструмент", multi:false,
+    q:"Работник берёт электрифицированный инструмент со стеллажа и хочет сразу приступить к операции. Что он обязан проверить при осмотре перед началом работы?",
+    opts:[
+      "Только уровень заряда аккумулятора",
+      "Целостность корпуса, кабеля (шнура) и вилки, исправность выключателя и защитных ограждений (кожухов)",
+      "Только остроту рабочей оснастки",
+      "Ничего проверять не нужно, если инструмент включается"
+    ],
+    correct:[1],
+    explain:"Перед работой проверяют целостность корпуса, питающего кабеля и вилки, исправность выключателя и защитных ограждений. Работать при повреждении любого из этих элементов нельзя.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VI (осмотр электрифицированного инструмента перед работой)"
+  },
+  {
+    topic:"Электроинструмент", multi:false,
+    q:"Перед работой обнаружено, что изоляция питающего кабеля электроинструмента повреждена (потёрта). Как поступить?",
+    opts:[
+      "Обмотать повреждённое место изолентой и работать",
+      "Работать, стараясь не касаться этого участка кабеля",
+      "Не использовать инструмент: вывести из эксплуатации и сообщить руководителю; ремонт выполняет уполномоченное лицо",
+      "Отрезать повреждённый участок и укоротить кабель"
+    ],
+    correct:[2],
+    explain:"Электроинструмент с повреждённым кабелем к работе не допускается — это риск поражения током. Его выводят из эксплуатации и сообщают руководителю; ремонт выполняет уполномоченный работник, а не пользователь.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VI; Приказ Минтруда России от 15.12.2020 № 903н (электробезопасность)"
+  },
+  {
+    topic:"Электроинструмент", multi:true,
+    q:"Работник продолжает операцию электрифицированным инструментом и сомневается, при каких признаках работу нужно немедленно прекратить. Выберите все правильные варианты.",
+    opts:[
+      "Появление дыма или запаха горелой изоляции",
+      "Штатный ровный звук работы двигателя под нагрузкой",
+      "Искрение и повышенный нагрев корпуса",
+      "Резко возросшие шум и вибрация"
+    ],
+    correct:[0,2,3],
+    explain:"Дым, запах гари, искрение, перегрев корпуса, а также резко возросшие шум и вибрация — признаки неисправности. Работу прекращают и сдают инструмент в ремонт. Ровный штатный звук двигателя под нагрузкой неисправностью не является.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VI (действия при неисправности электроинструмента)"
+  },
+  {
+    topic:"Электроинструмент", multi:false,
+    q:"Во время работы электрифицированный инструмент начал сильнее обычного вибрировать, появился периодический запах нагретой изоляции, однако инструмент продолжает выполнять операцию. Как должен поступить работник?",
+    opts:[
+      "Продолжить операцию, пока инструмент работает",
+      "Прекратить работу, отключить инструмент от источника питания и сдать в ремонт; сообщить руководителю",
+      "Немного снизить нагрузку и доработать операцию",
+      "Побрызгать на корпус водой для охлаждения"
+    ],
+    correct:[1],
+    explain:"Запах нагретой изоляции и возросшая вибрация — признаки неисправности и угрозы возгорания или поражения током. Работу прекращают, инструмент отключают от питания и сдают в ремонт. «Доработать» или охлаждать водой недопустимо.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VI (прекращение работы при неисправности)"
+  },
+  {
+    topic:"Электроинструмент", multi:false,
+    q:"Работник отключил инструмент кнопкой, но собирается заменить рабочую оснастку, не отключая инструмент от источника энергии. Какое условие необходимо выполнить перед заменой оснастки?",
+    opts:[
+      "Менять оснастку сразу — достаточно выключения кнопкой",
+      "Менять оснастку на весу, придерживая выключатель",
+      "Отключить инструмент от источника питания (вынуть вилку из розетки, снять аккумулятор), затем менять оснастку",
+      "Попросить коллегу удерживать кнопку в положении «выключено»"
+    ],
+    correct:[2],
+    explain:"Замену рабочей оснастки выполняют только после отключения инструмента от источника питания. Выключения кнопкой недостаточно: возможен случайный пуск и травма. Аккумуляторный инструмент обесточивают снятием аккумулятора.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VI (отключение при смене рабочего инструмента)"
+  },
+  {
+    topic:"Электроинструмент", multi:false,
+    q:"При работе электрифицированным инструментом питающий кабель оказался в зоне перемещения деталей. Повреждений пока нет. Какое действие необходимо выполнить до продолжения работы?",
+    opts:[
+      "Продолжить работу — повреждений пока нет",
+      "Ускорить работу, чтобы успеть закончить до повреждения кабеля",
+      "Прикрыть кабель ветошью и продолжить",
+      "Проложить и защитить кабель так, чтобы исключить его повреждение и попадание в зону перемещения деталей, и только затем продолжать работу"
+    ],
+    correct:[3],
+    explain:"Кабель нужно проложить и защитить так, чтобы исключить его повреждение, защемление и попадание в зону перемещения деталей. Повреждение изоляции ведёт к поражению током, поэтому меры принимают до продолжения работы.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VI (обращение с питающим кабелем)"
+  },
+  {
+    topic:"Электроинструмент", multi:true,
+    q:"Какие приёмы работы с электрифицированным инструментом являются безопасными и правильными? Выберите все правильные варианты.",
+    opts:[
+      "Оставлять включённый инструмент без надзора между операциями",
+      "Отключать инструмент от сети при перерывах в работе и при его переносе",
+      "Не натягивать, не перекручивать и не защемлять питающий кабель",
+      "Не выполнять самостоятельный ремонт инструмента"
+    ],
+    correct:[1,2,3],
+    explain:"При перерывах и переносе инструмент отключают от сети, кабель берегут от натяжения, перекручивания и защемления, самостоятельный ремонт не выполняют. Оставлять включённый инструмент без надзора запрещено.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VI (безопасные приёмы, запрет самостоятельного ремонта)"
+  },
+
+  // ===== БЛОК 4. АБРАЗИВНЫЙ И ЭЛЬБОРОВЫЙ ИНСТРУМЕНТ (5) =====
+  {
+    topic:"Абразивный инструмент", multi:false,
+    q:"Перед установкой шлифовального (отрезного) круга работник заметил на нём трещину. Как поступить?",
+    opts:[
+      "Установить круг, если трещина небольшая",
+      "Сточить дефектное место и работать",
+      "Не устанавливать и не применять круг с трещинами, сколами или отслоением слоя; заменить исправным",
+      "Проверить круг только на слух после пуска инструмента"
+    ],
+    correct:[2],
+    explain:"Круг с трещинами, сколами или отслоением рабочего слоя применять нельзя — на рабочей скорости он может разрушиться и разлететься. Такой круг заменяют исправным, соответствующим документации изготовителя.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VII (проверка абразивного круга перед работой)"
+  },
+  {
+    topic:"Абразивный инструмент", multi:false,
+    q:"Защитное ограждение (кожух) шлифовальной машины отсутствует или повреждено. Как правильно поступить?",
+    opts:[
+      "Работать осторожно без кожуха",
+      "Не работать: инструмент должен иметь исправное защитное ограждение рабочей части; устранить неисправность до работы",
+      "Заменить кожух подручным материалом (картоном)",
+      "Работать на пониженных оборотах без кожуха"
+    ],
+    correct:[1],
+    explain:"Абразивный инструмент должен иметь исправное защитное ограждение рабочей части. Без кожуха работа запрещена: он защищает от разлёта частиц и осколков при разрушении круга. Импровизированные «кожухи» не защищают.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VII (защитное ограждение рабочей части)"
+  },
+  {
+    topic:"Абразивный инструмент", multi:false,
+    q:"Работник подбирает абразивный круг для шлифовальной машины. Как убедиться, что круг подходит инструменту по скорости вращения?",
+    opts:[
+      "Установить любой круг, подходящий по посадочному размеру",
+      "Допустимая (максимальная) скорость круга по его маркировке должна быть не ниже рабочей частоты вращения инструмента; круг применяют в соответствии с документацией изготовителя",
+      "Увеличить обороты инструмента, чтобы повысить скорость реза",
+      "Определить пригодность круга «на глаз» по диаметру"
+    ],
+    correct:[1],
+    explain:"Круг подбирают так, чтобы допустимая скорость по его маркировке была не ниже частоты вращения инструмента. Этот параметр берут из маркировки и документации изготовителя, а не назначают произвольно.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VII; эксплуатационная документация изготовителя (маркировка круга)"
+  },
+  {
+    topic:"Абразивный инструмент", multi:true,
+    q:"Какие правила нужно соблюдать при работе абразивным инструментом? Выберите все правильные варианты.",
+    opts:[
+      "Применять средства защиты глаз и лица (очки, защитный щиток)",
+      "Не тормозить вращающийся круг нажатием на него какого-либо предмета",
+      "Снимать защитный кожух для лучшего обзора зоны реза",
+      "Не находиться без необходимости в плоскости вращения круга и не применять рычаг для увеличения нажатия детали"
+    ],
+    correct:[0,1,3],
+    explain:"При работе применяют защиту глаз и лица, не тормозят круг посторонними предметами, не стоят в плоскости вращения и не давят на деталь через рычаг. Снимать защитный кожух запрещено.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VII (правила работы с абразивным инструментом)"
+  },
+  {
+    topic:"Абразивный инструмент", multi:false,
+    q:"Как работнику правильно расположиться относительно вращающегося круга и защититься от разлёта частиц?",
+    opts:[
+      "Располагаться вне плоскости вращения круга и применять защиту глаз и лица от разлёта частиц",
+      "Стоять прямо напротив плоскости вращающегося круга для удобства",
+      "Работать без защиты глаз, если операция короткая",
+      "Направлять поток искр в сторону других работников"
+    ],
+    correct:[0],
+    explain:"Работник располагается вне плоскости вращения круга (на случай его разрушения) и применяет защиту глаз и лица. Направлять искры на людей и работать без защиты глаз запрещено.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VII (положение работника, защита от разлёта частиц)"
+  },
+
+  // ===== БЛОК 5. ПНЕВМАТИЧЕСКИЙ И ГИДРАВЛИЧЕСКИЙ ИНСТРУМЕНТ (3) =====
+  {
+    topic:"Пневмо/гидроинструмент", multi:false,
+    q:"Работнику нужно подключить пневматический инструмент к воздушной магистрали, а затем отсоединить его. Как правильно присоединять и отсоединять шланг?",
+    opts:[
+      "Присоединять и отсоединять шланг под давлением, действуя быстро",
+      "Присоединять и отсоединять шланг при закрытой запорной арматуре (прекращённой подаче воздуха); магистраль и шланг предварительно продуть",
+      "Перегибать шланг рукой, чтобы временно перекрыть воздух",
+      "Наращивать длину шланга подручными соединениями"
+    ],
+    correct:[1],
+    explain:"Подключение и отсоединение шланга выполняют при закрытой запорной арматуре (без подачи воздуха); воздушную магистраль и шланг предварительно продувают. Манипуляции под давлением и перегиб шланга вместо запорной арматуры опасны.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VIII (пневматический инструмент)"
+  },
+  {
+    topic:"Пневмо/гидроинструмент", multi:false,
+    q:"Во время работы пневмоинструментом обнаружена неисправность (утечка в соединении). Работник хочет подтянуть соединение, не прекращая подачу воздуха. Как правильно?",
+    opts:[
+      "Устранить неисправность, не прекращая подачу воздуха, чтобы не терять время",
+      "Перегнуть шланг рукой и подтянуть соединение",
+      "Прекратить работу, отключить подачу воздуха (сбросить давление), затем устранять неисправность; менять рабочую часть при наличии сжатого воздуха в шланге запрещено",
+      "Продолжать работу, игнорируя утечку"
+    ],
+    correct:[2],
+    explain:"Исправлять, регулировать и менять рабочую часть пневмоинструмента при наличии в шланге сжатого воздуха запрещено. Сначала прекращают подачу воздуха и сбрасывают давление, затем устраняют неисправность.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел VIII (запрет вмешательства при наличии сжатого воздуха)"
+  },
+  {
+    topic:"Пневмо/гидроинструмент", multi:true,
+    q:"Что является правильным при работе с гидравлическим инструментом? Выберите все правильные варианты.",
+    opts:[
+      "Подключать инструмент к гидросистеме при отсутствии давления",
+      "Работать при небольшом подтекании рабочей жидкости, если давление в норме",
+      "Не превышать максимальное давление, указанное в документации изготовителя",
+      "Устранять неисправность соединения, не сбрасывая давление"
+    ],
+    correct:[0,2],
+    explain:"Гидравлический инструмент подключают при отсутствии давления и не превышают максимальное давление по документации изготовителя. Работать при подтекании рабочей жидкости и устранять неисправность под давлением нельзя.",
+    basis:"Приказ Минтруда России от 27.11.2020 № 835н, раздел X (гидравлический инструмент); документация изготовителя"
+  },
+
+  // ===== БЛОК 6. СИЗ И ОПАСНЫЕ СИТУАЦИИ (3) =====
+  {
+    topic:"СИЗ и опасные ситуации", multi:false,
+    q:"Работник собирается надеть тканевые перчатки при работе на вращающемся инструменте (сверлильном, шлифовальном), где есть риск захвата перчатки движущимися частями. Как правильно?",
+    opts:[
+      "Перчатки обязательны при любой работе с вращающимся инструментом",
+      "Там, где есть риск захвата перчаток вращающимися частями, их применение может быть опасным; СИЗ выбирают по оценке рисков и документации изготовителя, обязательно защищая глаза и лицо",
+      "Работать вообще без каких-либо СИЗ",
+      "Надеть свободные перчатки для лучшего хвата инструмента"
+    ],
+    correct:[1],
+    explain:"Перчатки нельзя считать обязательными для любой работы с вращающимся инструментом: при риске захвата движущимися частями они опасны. СИЗ подбирают по оценке профрисков и документации изготовителя; защита глаз и лица при этом обязательна.",
+    basis:"Приказ Минтруда России от 29.10.2021 № 766н (СИЗ); Приказ Минтруда России от 27.11.2020 № 835н; оценка профессиональных рисков"
+  },
+  {
+    topic:"СИЗ и опасные ситуации", multi:false,
+    q:"При работе инструментом работник получил травму (например, в глаз попала частица). Как правильно действовать?",
+    opts:[
+      "Прекратить работу, оказать (получить) первую помощь, при необходимости обратиться за медицинской помощью и сообщить руководителю о происшествии",
+      "Продолжить работу, если боль терпима",
+      "Промыть глаз самостоятельно и никому не сообщать",
+      "Потереть глаз рукой и продолжить работу"
+    ],
+    correct:[0],
+    explain:"При травме работу прекращают, оказывают или получают первую помощь, при необходимости обращаются за медицинской помощью и обязательно сообщают руководителю о происшествии. Тереть глаз и скрывать травму нельзя.",
+    basis:"ст. 215, ст. 216.1 ТК РФ; Приказ Минздрава России от 03.05.2024 № 220н (первая помощь)"
+  },
+  {
+    topic:"СИЗ и опасные ситуации", multi:true,
+    q:"Работник переходит от одной операции к другой и подбирает средства индивидуальной защиты. Как правильно выбирать и применять СИЗ в зависимости от операции? Выберите все правильные варианты.",
+    opts:[
+      "При ударных и абразивных работах применять защиту глаз (лица)",
+      "При повышенном уровне шума применять защиту органов слуха",
+      "Отказаться от СИЗ, если операция кратковременная",
+      "Применять только исправные СИЗ, проверяя их перед использованием"
+    ],
+    correct:[0,1,3],
+    explain:"СИЗ подбирают под конкретную операцию: защита глаз и лица при ударных и абразивных работах, защита слуха при повышенном шуме; применяют только исправные СИЗ с проверкой перед использованием. Отказ от СИЗ из-за краткости операции недопустим.",
+    basis:"Приказ Минтруда России от 29.10.2021 № 766н (СИЗ); ст. 215 ТК РФ"
+  }
+];
+
+var TOTAL = QUESTIONS.length;
+var state = { idx:0, order:[], selected:[], locked:false, answers:[] };
+
+function $(id){ return document.getElementById(id); }
+function show(screenId){
+  var list = document.querySelectorAll(".screen");
+  for(var i=0;i<list.length;i++) list[i].classList.remove("active");
+  $(screenId).classList.add("active");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function arraysEqual(a,b){
+  if(a.length!==b.length) return false;
+  var sa=a.slice().sort(function(x,y){return x-y;});
+  var sb=b.slice().sort(function(x,y){return x-y;});
+  for(var i=0;i<sa.length;i++) if(sa[i]!==sb[i]) return false;
+  return true;
+}
+function shuffled(n){
+  var a=[]; for(var i=0;i<n;i++) a.push(i);
+  for(var j=a.length-1;j>0;j--){ var k=Math.floor(Math.random()*(j+1)); var t=a[j]; a[j]=a[k]; a[k]=t; }
+  return a;
+}
+var ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+var ICON_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+function renderQuestion(){
+  var q = QUESTIONS[state.idx];
+  state.selected = [];
+  state.locked = false;
+  state.order = shuffled(q.opts.length);
+
+  $("q-count").textContent = "Вопрос " + (state.idx+1) + " из " + TOTAL;
+  $("q-topic").textContent = q.topic;
+  $("q-bar").style.width = ((state.idx / TOTAL) * 100) + "%";
+  $("q-text").textContent = q.q;
+  $("q-multi").classList.toggle("hidden", !q.multi);
+
+  var wrap = $("q-opts");
+  wrap.innerHTML = "";
+  for(var k=0;k<state.order.length;k++){
+    (function(k){
+      var original = state.order[k];
+      var el = document.createElement("div");
+      el.className = "opt";
+      el.setAttribute("role", q.multi ? "checkbox":"radio");
+      el.setAttribute("tabindex","0");
+      el.setAttribute("aria-checked","false");
+      el.innerHTML = '<span class="mark">'+LETTERS[k]+'</span><span class="txt">'+q.opts[original]+'</span><span class="res-ic"></span>';
+      el.addEventListener("click", function(){ toggleOption(k); });
+      el.addEventListener("keydown", function(ev){
+        if(ev.key===" "||ev.key==="Enter"){ ev.preventDefault(); toggleOption(k); }
+      });
+      wrap.appendChild(el);
+    })(k);
+  }
+  $("q-feedback").classList.add("hidden");
+  $("btn-answer").classList.remove("hidden");
+  $("btn-answer").disabled = true;
+  $("btn-next").classList.add("hidden");
+  $("btn-next").textContent = (state.idx === TOTAL-1) ? "Показать результат" : "Следующий вопрос";
+}
+
+function toggleOption(k){
+  if(state.locked) return;
+  var q = QUESTIONS[state.idx];
+  var pos = state.selected.indexOf(k);
+  if(q.multi){
+    if(pos===-1) state.selected.push(k); else state.selected.splice(pos,1);
+  } else {
+    state.selected = (pos===-1) ? [k] : [];
+  }
+  var opts = $("q-opts").children;
+  for(var j=0;j<opts.length;j++){
+    var sel = state.selected.indexOf(j)!==-1;
+    opts[j].classList.toggle("selected", sel);
+    opts[j].setAttribute("aria-checked", sel ? "true":"false");
+  }
+  $("btn-answer").disabled = state.selected.length===0;
+}
+
+function submitAnswer(){
+  if(state.locked || state.selected.length===0) return;
+  state.locked = true;
+  var q = QUESTIONS[state.idx];
+
+  var selOriginal = state.selected.map(function(k){ return state.order[k]; });
+  var isCorrect = arraysEqual(selOriginal, q.correct);
+
+  var opts = $("q-opts").children;
+  var rightLetters = [];
+  var rightPieces = [];
+  var yourPieces = [];
+  var sortedSel = state.selected.slice().sort(function(a,b){return a-b;});
+  for(var k=0;k<opts.length;k++){
+    var original = state.order[k];
+    opts[k].classList.add("locked");
+    opts[k].classList.remove("selected");
+    opts[k].setAttribute("tabindex","-1");
+    var isRight = q.correct.indexOf(original)!==-1;
+    var wasPicked = state.selected.indexOf(k)!==-1;
+    var icHost = opts[k].querySelector(".res-ic");
+    if(isRight){
+      opts[k].classList.add("reveal-ok");
+      icHost.innerHTML = ICON_OK; icHost.style.color = "var(--ok)";
+      rightLetters.push(LETTERS[k]);
+      rightPieces.push(LETTERS[k]+") "+q.opts[original]);
+    } else if(wasPicked){
+      opts[k].classList.add("reveal-bad");
+      icHost.innerHTML = ICON_BAD; icHost.style.color = "var(--err)";
+    }
+  }
+  rightLetters.sort();
+  for(var s=0;s<sortedSel.length;s++){
+    var kk = sortedSel[s];
+    yourPieces.push(LETTERS[kk]+") "+q.opts[state.order[kk]]);
+  }
+
+  state.answers[state.idx] = {
+    correct: isCorrect,
+    yourText: yourPieces.join("; "),
+    rightText: rightPieces.sort().join("; ")
+  };
+
+  var v = $("q-verdict");
+  if(isCorrect){
+    v.className = "verdict good";
+    v.innerHTML = ICON_OK + "<span>Правильно</span>";
+  } else {
+    v.className = "verdict bad";
+    var label = q.multi ? "Неправильно. Правильные варианты: " : "Неправильно. Правильный ответ: ";
+    v.innerHTML = ICON_BAD + "<span>"+label+rightLetters.join(", ")+"</span>";
+  }
+  $("q-explain").textContent = q.explain;
+  $("q-basis").textContent = q.basis;
+  $("q-feedback").classList.remove("hidden");
+  $("btn-answer").classList.add("hidden");
+  $("btn-next").classList.remove("hidden");
+  $("q-bar").style.width = (((state.idx+1) / TOTAL) * 100) + "%";
+}
+
+function nextQuestion(){
+  if(state.idx < TOTAL-1){ state.idx++; renderQuestion(); }
+  else { showResult(); }
+}
+
+function showResult(){
+  var ok = 0;
+  for(var i=0;i<state.answers.length;i++){ if(state.answers[i] && state.answers[i].correct) ok++; }
+  var err = TOTAL - ok;
+  var exact = (ok/TOTAL)*100;
+  var pct = Math.round(exact);
+  $("res-percent").textContent = pct + "%";
+  $("res-fraction").textContent = ok + " из " + TOTAL;
+  $("res-ok").textContent = ok;
+  $("res-err").textContent = err;
+
+  var grade, sub, ringColor;
+  if(exact>=90){ grade="Отлично"; sub="Высокий уровень знаний."; ringColor="#5fd39a"; }
+  else if(exact>=80){ grade="Хорошо"; sub="Основные требования усвоены."; ringColor="#5fd39a"; }
+  else if(exact>=70){ grade="Удовлетворительно"; sub="Рекомендуется повторить отдельные темы."; ringColor="#f2c14e"; }
+  else { grade="Тест не пройден"; sub="Рекомендуется повторно изучить требования безопасности."; ringColor="#ef8a7f"; }
+  $("res-grade").textContent = grade;
+  $("res-grade-sub").textContent = sub;
+
+  var ring = $("ring-fg");
+  ring.setAttribute("stroke", ringColor);
+  var circ = 490;
+  ring.style.transition = "none";
+  ring.style.strokeDashoffset = circ;
+  show("screen-result");
+  setTimeout(function(){
+    ring.style.transition = "stroke-dashoffset 1s ease";
+    ring.style.strokeDashoffset = circ - (circ * pct/100);
+  }, 120);
+  $("btn-review").textContent = (err>0) ? "Разобрать ошибки" : "Показать разбор";
+}
+
+function showReview(){
+  var list = $("rev-list");
+  list.innerHTML = "";
+  var wrong = [];
+  for(var i=0;i<QUESTIONS.length;i++){ if(state.answers[i] && !state.answers[i].correct) wrong.push(i); }
+  $("rev-sub").textContent = wrong.length===0 ? "Ошибок нет" : (wrong.length===1 ? "1 вопрос с ошибкой" : wrong.length + " вопрос(ов) с ошибками");
+  if(wrong.length===0){
+    list.innerHTML = '<div class="rev-empty">Отличный результат! Все вопросы решены правильно.</div>';
+  }
+  for(var w=0;w<wrong.length;w++){
+    var qi = wrong[w];
+    var q = QUESTIONS[qi];
+    var ans = state.answers[qi];
+    var item = document.createElement("div");
+    item.className = "rev-item";
+    item.innerHTML =
+      '<p class="rtopic">'+q.topic+'</p>'+
+      '<p class="rq">'+(qi+1)+'. '+q.q+'</p>'+
+      '<div class="rev-line"><span class="tag your">Ваш ответ</span><span>'+(ans.yourText||"—")+'</span></div>'+
+      '<div class="rev-line"><span class="tag right">Верно</span><span>'+ans.rightText+'</span></div>'+
+      '<div class="explain"><p class="lbl">Что нужно было сделать</p><p>'+q.explain+'</p></div>'+
+      '<p class="basis"><span class="lbl">Нормативное основание</span>'+q.basis+'</p>';
+    list.appendChild(item);
+  }
+  show("screen-review");
+}
+
+function restart(){
+  state = { idx:0, order:[], selected:[], locked:false, answers:[] };
+  var ring = $("ring-fg");
+  ring.style.transition = "none";
+  ring.style.strokeDashoffset = 490;
+  show("screen-start");
+}
+
+$("btn-start").addEventListener("click", function(){ renderQuestion(); show("screen-quiz"); });
+$("btn-answer").addEventListener("click", submitAnswer);
+$("btn-next").addEventListener("click", nextQuestion);
+$("btn-review").addEventListener("click", showReview);
+$("btn-restart").addEventListener("click", restart);
+$("btn-restart2").addEventListener("click", restart);
+$("btn-back-result").addEventListener("click", function(){ show("screen-result"); });
+</script>
+
+</body>
+</html>
